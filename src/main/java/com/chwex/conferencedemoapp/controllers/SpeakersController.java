@@ -9,6 +9,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 
+import javax.validation.Valid;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -30,6 +31,11 @@ public class SpeakersController {
         return speakerRepository.getById(id);
     }
 
+    @PostMapping
+    public Speaker create(@Valid @RequestBody final Speaker speaker) {
+        return speakerRepository.saveAndFlush(speaker);
+    }
+
     @RequestMapping(value = "{id}", method = RequestMethod.DELETE)
     public void delete(@PathVariable Long id){
         //check for child records
@@ -37,11 +43,23 @@ public class SpeakersController {
     }
 
     @RequestMapping(value = "{id}", method = RequestMethod.PUT)
-    public Speaker update(@PathVariable Long id, @RequestBody Speaker speaker){
+    public Speaker update(@PathVariable Long id, @Valid @RequestBody Speaker speaker){
         Speaker existingSpeaker = speakerRepository.getById(id);
         //add validation
         BeanUtils.copyProperties(speaker,existingSpeaker, "speaker_id");
         return speakerRepository.saveAndFlush(existingSpeaker);
     }
 
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public Map<String, String> handleValidationExceptions(
+            MethodArgumentNotValidException ex) {
+        Map<String, String> errors = new HashMap<>();
+        ex.getBindingResult().getAllErrors().forEach((error) -> {
+            String fieldName = ((FieldError) error).getField();
+            String errorMessage = error.getDefaultMessage();
+            errors.put(fieldName, errorMessage);
+        });
+        return errors;
+    }
 }

@@ -31,7 +31,7 @@ public class SessionsController {
         return sessionRepository.getById(id);
     }
     @PostMapping
-    public Session create( @RequestBody final Session session) {
+    public Session create(@Valid @RequestBody final Session session) {
         return sessionRepository.saveAndFlush(session);
     }
 
@@ -42,11 +42,23 @@ public class SessionsController {
     }
 
     @RequestMapping(value = "{id}", method = RequestMethod.PUT)
-    public Session update(@PathVariable Long id, @RequestBody Session session){
+    public Session update(@PathVariable Long id, @Valid @RequestBody Session session){
         Session existingSession = sessionRepository.getById(id);
         //TODO: add validation for session object
         BeanUtils.copyProperties(session,existingSession, "session_id");
         return sessionRepository.saveAndFlush(existingSession);
     }
 
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public Map<String, String> handleValidationExceptions(
+            MethodArgumentNotValidException ex) {
+        Map<String, String> errors = new HashMap<>();
+        ex.getBindingResult().getAllErrors().forEach((error) -> {
+            String fieldName = ((FieldError) error).getField();
+            String errorMessage = error.getDefaultMessage();
+            errors.put(fieldName, errorMessage);
+        });
+        return errors;
+    }
 }
